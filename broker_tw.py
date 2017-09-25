@@ -22,7 +22,7 @@ def cook(filelist):
         ticker = name_date.group(1)
         mdate = name_date.group(2)
         date = datetime.strptime(mdate, "%Y%m%d")
-        # date_ad = str(int(mdate)+19110000)
+        # date_ad = str(int(mdate) + 19110000)
         # date = datetime.strptime(date_ad, "%Y%m%d")
         
         # set the output path
@@ -50,7 +50,7 @@ def cook(filelist):
         
         # check the raw data and skip if err
         if pd.isnull(df_raw.loc[0,"券商"]):
-            print(filename + " has a problem or empty data, and will be skipped.")
+            print(filename + " has a problem, and will be skipped.")
             skip = skip + 1
             skip_ticker.append(filename[-17:-4])
             continue
@@ -66,8 +66,8 @@ def cook(filelist):
         df_r.loc[:,["價格", "買進股數", "賣出股數"]] = df_r[["價格", "買進股數", "賣出股數"]].replace("[^0-9.]","", regex=True).values
         
         # reset dtype of df_l and df_r
-        df_l.loc[:,["序號","買進股數","賣出股數"]] = df_l[["序號","買進股數","賣出股數"]].astype("int64").values
-        df_r.loc[:,["序號","買進股數","賣出股數"]] = df_r[["序號","買進股數","賣出股數"]].astype("int64").values
+        df_l.loc[:,["序號","買進股數","賣出股數"]] = df_l[["序號", "買進股數", "賣出股數"]].astype("int64").values
+        df_r.loc[:,["序號","買進股數","賣出股數"]] = df_r[["序號", "買進股數", "賣出股數"]].astype("int64").values
 
         # reset dtype of df_l and df_r to float64
         df_l.loc[:, "價格"] = df_l.loc[:, "價格"].astype("float64").values
@@ -84,7 +84,7 @@ def cook(filelist):
         
         # rename header
         new_cols = ["price", "buy_share", "sell_share"]
-        df.rename(columns=dict(zip(df.columns[:3], new_cols)),inplace=True)
+        df.rename(columns=dict(zip(df.columns[:3], new_cols)), inplace=True)
         
         gp = df.groupby(["broker_code", "broker"])
         
@@ -105,9 +105,9 @@ def cook(filelist):
         ga["net_share"] = ga["buy_share"] - ga["sell_share"]
 
         # calculate the percent of buy and sell
-        volume = ga["buy_share"].sum()
-        ga["percent_of_buy"] = ga["buy_share"].apply(lambda x: x*100/volume).round(2)
-        ga["percent_of_sell"] = ga["sell_share"].apply(lambda x: x*100/volume).round(2)
+        # volume = ga["buy_share"].sum()
+        # ga["percent_of_buy"] = ga["buy_share"].apply(lambda x: x*100/volume).round(2)
+        # ga["percent_of_sell"] = ga["sell_share"].apply(lambda x: x*100/volume).round(2)
         
         # turn share to k share
         ga["buy_share"] = ga["buy_share"].apply(lambda x: x/1000).round(0).astype("int64")
@@ -121,8 +121,8 @@ def cook(filelist):
         # move column order
         cols = list(ga)
         cols.insert(3, cols.pop(cols.index("buy_wavg")))
-        cols.insert(4, cols.pop(cols.index("percent_of_buy")))
-        cols.insert(7, cols.pop(cols.index("percent_of_sell")))
+        # cols.insert(4, cols.pop(cols.index("percent_of_buy")))
+        # cols.insert(7, cols.pop(cols.index("percent_of_sell")))
         ga = ga.loc[:, cols]
         
         # sort by buy_k_share and broker_code
@@ -132,9 +132,6 @@ def cook(filelist):
         ga.insert(0, "date", date.strftime("%Y-%m-%d"))
         ga.insert(1, "ticker", ticker + ".TW")
         
-
-
-
         # output the broker dataframe as csv
         ga.to_csv(path_or_buf=output, index=False, encoding="utf-8-sig")
         
@@ -154,7 +151,7 @@ def raw_folder_list():
     for folder in matket_folder:
         for path, subdirs, files in os.walk(folder + "/raw/"):
             for name in files:
-                raw_list.append(os.path.join(path, name))
+                raw_list.append(os.path.join(path, name).replace("\\","/"))
     return raw_list
 
 
@@ -164,10 +161,15 @@ raw_list = raw_folder_list()
 
 total_file = len(raw_list)
 cook_return = cook(raw_list)
+finished_file = total_file - cook_return[2]
+time_spent = time.time() - start_time
 
-print("--- total %s files, %s skipped ---" % (total_file - cook_return[2], cook_return[0]))
-print("--- %s sec spent ---" % (time.time() - start_time))
+# print("--- total %s files, %s skipped ---" % (total_file - cook_return[2], cook_return[0]))
+# print("--- %s sec spent ---" % (time.time() - start_time))
+print("--- total {0:,} files, {1:,} skipped ---".format(finished_file, cook_return[0]))
+print("--- {} spent ---".format(time.strftime("%H:%M:%S", time.gmtime(time_spent))))
+if finished_file != 0:
+    print("--- Avg: {:.2f} sec spent per file---".format(time_spent / finished_file))
 if cook_return[1]:
-    print(" skipped: %s" %cook_return[1])
-
-
+    # print(" skipped: %s" %cook_return[1])
+    print(" skipped: {}".format(cook_return[1]))
