@@ -31,19 +31,19 @@ def cook(filelist):
             os.makedirs(output_folder, mode=0o777)
         output_file = ticker + "_broker_"+ date.strftime("%Y-%m-%d") +".csv"
         output = output_folder + "/" + output_file
-
+        
         # skip if output exists
         if os.path.exists(output):
             finished = finished + 1
             continue
-
+        
         # skip if csv is empty
         if os.stat(filename).st_size == 0:
             print(filename + " is an empty file, and will be skipped.")
             skip = skip + 1
             skip_ticker.append(filename[-17:-4])
             continue
-
+        
         # read the raw data by pandas
         # path = "./raw/" + mdate + "/" + filename
         df_raw = pd.read_csv(filename, header=2, encoding="cp950")
@@ -103,7 +103,7 @@ def cook(filelist):
         
         # calculate net share
         ga["net_share"] = ga["buy_share"] - ga["sell_share"]
-
+        
         # calculate the percent of buy and sell
         # volume = ga["buy_share"].sum()
         # ga["percent_of_buy"] = ga["buy_share"].apply(lambda x: x*100/volume).round(2)
