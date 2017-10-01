@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import os
 import re
 import time
@@ -10,6 +8,7 @@ import warnings
 
 # ignore python warnings
 warnings.filterwarnings("ignore")
+
 
 def cook(filelist):
     skip = 0
@@ -48,7 +47,7 @@ def cook(filelist):
         df_raw = pd.read_csv(filename, header=2, encoding="cp950")
 
         # check the raw data and skip if err
-        if pd.isnull(df_raw.loc[0,"券商"]):
+        if pd.isnull(df_raw.loc[0, "券商"]):
             print("{} has a problem, and will be skipped.".format(filename))
             skip += 1
             skip_ticker.append(filename[-17:-4])
@@ -61,12 +60,12 @@ def cook(filelist):
         df_r.columns = reheader
 
         # remove comma in TPEX data
-        df_l.loc[:,["價格", "買進股數", "賣出股數"]] = df_l[["價格", "買進股數", "賣出股數"]].replace("[^0-9.]","", regex=True).values
-        df_r.loc[:,["價格", "買進股數", "賣出股數"]] = df_r[["價格", "買進股數", "賣出股數"]].replace("[^0-9.]","", regex=True).values
+        df_l.loc[:, ["價格", "買進股數", "賣出股數"]] = df_l[["價格", "買進股數", "賣出股數"]].replace("[^0-9.]", "", regex=True).values
+        df_r.loc[:, ["價格", "買進股數", "賣出股數"]] = df_r[["價格", "買進股數", "賣出股數"]].replace("[^0-9.]", "", regex=True).values
 
         # reset dtype of df_l and df_r
-        df_l.loc[:,["序號","買進股數","賣出股數"]] = df_l[["序號", "買進股數", "賣出股數"]].astype("int64").values
-        df_r.loc[:,["序號","買進股數","賣出股數"]] = df_r[["序號", "買進股數", "賣出股數"]].astype("int64").values
+        df_l.loc[:, ["序號", "買進股數", "賣出股數"]] = df_l[["序號", "買進股數", "賣出股數"]].astype("int64").values
+        df_r.loc[:, ["序號", "買進股數", "賣出股數"]] = df_r[["序號", "買進股數", "賣出股數"]].astype("int64").values
 
         # reset dtype of df_l and df_r to float64
         df_l.loc[:, "價格"] = df_l.loc[:, "價格"].astype("float64").values
@@ -76,8 +75,8 @@ def cook(filelist):
         df = pd.concat([df_l, df_r], ignore_index=True).dropna()
 
         # slice the broker code and broker
-        df["broker_code"] = df["券商"].str.slice(0,4)
-        df["broker"] = df["券商"].str.slice(4).str.replace("\s","").str.replace("★","犇")
+        df["broker_code"] = df["券商"].str.slice(0, 4)
+        df["broker"] = df["券商"].str.slice(4).str.replace("\s", "").str.replace("★", "犇")
         df.__delitem__("序號")
         df.__delitem__("券商")
 
@@ -90,14 +89,14 @@ def cook(filelist):
         # sum share, and calculate the weight average price
         buy_wavg = lambda x: np.around(np.ma.average(x, weights=df.loc[x.index, "buy_share"]), decimals=2)
         sell_wavg = lambda x: np.around(np.ma.average(x, weights=df.loc[x.index, "sell_share"]), decimals=2)
-        f = {"buy_share" : sum, "sell_share" : sum, "price" : {"buy_wavg" : buy_wavg, "sell_wavg" : sell_wavg}}
+        f = {"buy_share": sum, "sell_share": sum, "price": {"buy_wavg": buy_wavg, "sell_wavg": sell_wavg}}
         ga = gp.agg(f).fillna(0).reset_index()
 
         # merge the MultiIndex level
         ga.columns = [" ".join(col).strip() for col in ga.columns.values]
 
         # rename header
-        ga_cols = ["broker_code", "broker", "buy_share", "sell_share", "buy_wavg" , "sell_wavg"]
+        ga_cols = ["broker_code", "broker", "buy_share", "sell_share", "buy_wavg", "sell_wavg"]
         ga.rename(columns=dict(zip(ga.columns, ga_cols)), inplace=True)
 
         # calculate net share
@@ -105,16 +104,16 @@ def cook(filelist):
 
         # calculate the percent of buy and sell
         # volume = ga["buy_share"].sum()
-        # ga["percent_of_buy"] = ga["buy_share"].apply(lambda x: x*100/volume).round(2)
-        # ga["percent_of_sell"] = ga["sell_share"].apply(lambda x: x*100/volume).round(2)
+        # ga["percent_of_buy"] = ga["buy_share"].apply(lambda x: x * 100 / volume).round(2)
+        # ga["percent_of_sell"] = ga["sell_share"].apply(lambda x: x * 100 / volume).round(2)
 
         # turn share to k share
-        ga["buy_share"] = ga["buy_share"].apply(lambda x: x/1000).round(0).astype("int64")
-        ga["sell_share"] = ga["sell_share"].apply(lambda x: x/1000).round(0).astype("int64")
-        ga["net_share"] = ga["net_share"].apply(lambda x: x/1000).round(0).astype("int64")
+        ga["buy_share"] = ga["buy_share"].apply(lambda x: x / 1000).round(0).astype("int64")
+        ga["sell_share"] = ga["sell_share"].apply(lambda x: x / 1000).round(0).astype("int64")
+        ga["net_share"] = ga["net_share"].apply(lambda x: x / 1000).round(0).astype("int64")
 
         # rename header to k share
-        ga_cols_k = ["broker_code", "broker", "buy_k_share", "sell_k_share", "buy_wavg" , "sell_wavg", "net_k_share"]
+        ga_cols_k = ["broker_code", "broker", "buy_k_share", "sell_k_share", "buy_wavg", "sell_wavg", "net_k_share"]
         ga.rename(columns=dict(zip(ga.columns, ga_cols_k)), inplace=True)
 
         # move column order
@@ -137,20 +136,14 @@ def cook(filelist):
         print("{} done!".format(output_file))
     return skip, skip_ticker, finished
 
-"""
-def raw_folder_check():
-    raw_folder = "./raw/"
-    if not os.path.exists(raw_folder):
-        os.makedirs(raw_folder, mode=0o777)
-"""
-    
+
 def raw_folder_list():
     raw_list = []
     matket_folder = ["./otc", "./TWSE"]
     for folder in matket_folder:
         for path, subdirs, files in os.walk("{}/raw/".format(folder)):
             for name in files:
-                raw_list.append(os.path.join(path, name).replace("\\","/"))
+                raw_list.append(os.path.join(path, name).replace("\\", "/"))
     return raw_list
 
 
