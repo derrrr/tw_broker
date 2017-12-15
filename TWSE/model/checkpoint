@@ -1,0 +1,2 @@
+model_checkpoint_path: "TWSE_model"
+all_model_checkpoint_paths: "TWSE_model"
